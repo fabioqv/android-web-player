@@ -5,8 +5,10 @@ export interface PlaylistItem {
 
 export class PlaylistStore {
   private data: Record<string, PlaylistItem[]> = {};
+  private key: string;
 
-  constructor(private key = 'player.playlists') {
+  constructor(key = 'player.playlists') {
+    this.key = key;
     try {
       this.data = JSON.parse(localStorage.getItem(key) || '{}');
     } catch {

@@ -1,36 +1,32 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import './App.css';
 import { loadKV, saveKV } from './core/db';
 import { scanFolder, hasPermission, type Track } from './core/library';
+import { adicionarArquivos, carregarSalvas, pedirPersistencia, removerSalva, usoDeEspaco } from './core/local';
 import { PlayQueue, type RepeatMode } from './core/PlayQueue';
 import { PlaylistStore } from './core/PlaylistStore';
 import { lerMeta, type Meta } from './core/metadata';
 
-type Status =
-  | 'carregando'
-  | 'sem-pasta'
-  | 'reautorizar'
-  | 'varrendo'
-  | 'pronto'
-  | 'sem-suporte';
+type Status = 'carregando' | 'sem-pasta' | 'reautorizar' | 'varrendo' | 'pronto';
+
+// Chrome/Edge no computador acham as músicas pela pasta. Os demais usam arquivos salvos no app.
+const MODO_PASTA = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
 const P = {
   play: 'M8 5v14l11-7z',
   pause: 'M6 5h4v14H6zm8 0h4v14h-4z',
   next: 'M6 18l8.5-6L6 6zm10-12h2v12h-2z',
   prev: 'M6 6h2v12H6zm3.5 6l8.5 6V6z',
-  shuffle:
-    'M10.6 9.2L5.4 4 4 5.4l5.2 5.2zM14.5 4l2.5 2.5L4 19.6 5.4 21 18.5 7.9 21 10.5V4zm.3 9.4l-1.4 1.4 3.6 3.6L14.5 21H21v-6.5l-2.5 2.5z',
+  shuffle: 'M10.6 9.2L5.4 4 4 5.4l5.2 5.2zM14.5 4l2.5 2.5L4 19.6 5.4 21 18.5 7.9 21 10.5V4zm.3 9.4l-1.4 1.4 3.6 3.6L14.5 21H21v-6.5l-2.5 2.5z',
   repeat: 'M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z',
   dice: 'M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm3 4a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm8 0a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm-4 4.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 14a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm8 0a1.5 1.5 0 100 3 1.5 1.5 0 000-3z',
   x: 'M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z',
   vol: 'M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0014 7.97v8.05A4.5 4.5 0 0016.5 12z',
   add: 'M14 10H3v2h11zm0-4H3v2h11zM3 16h7v-2H3zm13-4v3h-3v2h3v3h2v-3h3v-2h-3v-3z',
+  trash: 'M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z',
 };
 const Icon = ({ d }: { d: string }) => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d={d} />
-  </svg>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d={d} /></svg>
 );
 
 const fmt = (s: number) => {
@@ -51,6 +47,9 @@ export default function App() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [pasta, setPasta] = useState('');
   const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState('');
+  const [uso, setUso] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // ---- player ----
   const queue = useRef(new PlayQueue()).current;
@@ -84,18 +83,19 @@ export default function App() {
       for (const t of tracks) {
         if (cancelado) return;
         const m = await lerMeta(t.file);
-        if (m.title || m.artist || m.cover)
-          setMetas((prev) => ({ ...prev, [t.id]: m }));
+        if (m.title || m.artist || m.cover) setMetas((prev) => ({ ...prev, [t.id]: m }));
       }
     })();
-    return () => {
-      cancelado = true;
-    };
+    return () => { cancelado = true; };
   }, [tracks]);
 
   const porId = useMemo(() => new Map(tracks.map((t) => [t.id, t])), [tracks]);
   const atual = atualId ? porId.get(atualId) : undefined;
   const capa = atual ? metas[atual.id]?.cover : undefined;
+
+  async function atualizarUso() {
+    setUso(await usoDeEspaco());
+  }
 
   async function varrer(handle: any) {
     setStatus('varrendo');
@@ -104,26 +104,28 @@ export default function App() {
     setStatus('pronto');
   }
 
+  // Ao abrir o app
   useEffect(() => {
     (async () => {
-      if (!('showDirectoryPicker' in window)) return setStatus('sem-suporte');
+      if (!MODO_PASTA) {
+        setTracks(await carregarSalvas());
+        setStatus('pronto');
+        atualizarUso();
+        return;
+      }
       const handle = await loadKV<any>('pasta');
       if (!handle) return setStatus('sem-pasta');
       setPasta(handle.name);
       if (await hasPermission(handle, false)) await varrer(handle);
       else setStatus('reautorizar');
-    })().catch((e) => {
-      setErro(String(e));
-      setStatus('sem-pasta');
-    });
+    })().catch((e) => { setErro(String(e)); setStatus(MODO_PASTA ? 'sem-pasta' : 'pronto'); });
   }, []);
 
+  // ---- modo computador: pasta ----
   async function escolherPasta() {
     try {
       setErro('');
-      const handle = await (window as any).showDirectoryPicker({
-        mode: 'read',
-      });
+      const handle = await (window as any).showDirectoryPicker({ mode: 'read' });
       await saveKV('pasta', handle);
       await varrer(handle);
     } catch (e: any) {
@@ -137,14 +139,37 @@ export default function App() {
     if (handle && (await hasPermission(handle, true))) await varrer(handle);
   }
 
+  // ---- modo celular: arquivos salvos no app ----
+  async function aoEscolherArquivos(e: ChangeEvent<HTMLInputElement>) {
+    const lista = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (!lista.length) return;
+    try {
+      setErro('');
+      setOcupado(`Salvando ${lista.length} arquivo(s)…`);
+      pedirPersistencia();
+      await adicionarArquivos(lista);
+      setTracks(await carregarSalvas());
+      atualizarUso();
+    } catch {
+      setErro('Não foi possível salvar. O aparelho pode estar sem espaço.');
+    } finally {
+      setOcupado('');
+    }
+  }
+
+  async function removerMusica(t: Track) {
+    if (!window.confirm(`Remover “${titulo(t)}” do app?`)) return;
+    if (t.id === atualId) { tocar(null); setAtualId(null); }
+    await removerSalva(t.id);
+    setTracks((prev) => prev.filter((x) => x.id !== t.id));
+    atualizarUso();
+  }
+
   // ---- controles do player ----
   function tocar(id: string | null) {
     const a = audioRef.current!;
-    if (id == null) {
-      a.pause();
-      a.currentTime = 0;
-      return;
-    }
+    if (id == null) { a.pause(); a.currentTime = 0; return; }
     const t = porId.get(id);
     if (!t) return;
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
@@ -155,11 +180,7 @@ export default function App() {
   }
 
   function idsDaFila(daPlaylist?: string): string[] {
-    if (daPlaylist)
-      return store
-        .tracks(daPlaylist)
-        .map((i) => i.id)
-        .filter((id) => porId.has(id));
+    if (daPlaylist) return store.tracks(daPlaylist).map((i) => i.id).filter((id) => porId.has(id));
     return tracks.map((t) => t.id);
   }
 
@@ -177,47 +198,28 @@ export default function App() {
 
   function playPause() {
     const a = audioRef.current!;
-    if (!atualId) {
-      if (tracks.length) iniciarDe(tracks[0].id);
-      return;
-    }
-    if (a.paused) a.play();
-    else a.pause();
+    if (!atualId) { if (tracks.length) iniciarDe(tracks[0].id); return; }
+    if (a.paused) a.play(); else a.pause();
   }
 
-  function proxima() {
-    tocar(queue.next(false));
-  }
+  function proxima() { tocar(queue.next(false)); }
   function anterior() {
     const a = audioRef.current!;
-    if (a.currentTime > 3) {
-      a.currentTime = 0;
-      return;
-    }
+    if (a.currentTime > 3) { a.currentTime = 0; return; }
     tocar(queue.prev(0));
   }
   function aleatoria() {
     if (!queue.order.length) queue.set(tracks.map((t) => t.id));
     tocar(queue.randomJump());
   }
-  function alternarAleatorio() {
-    setAleatorio(queue.toggleShuffle());
-  }
-  function alternarRepetir() {
-    setRepetir(queue.cycleRepeat());
-  }
-  function aoTerminar() {
-    tocar(queue.next(true));
-  }
+  function alternarAleatorio() { setAleatorio(queue.toggleShuffle()); }
+  function alternarRepetir() { setRepetir(queue.cycleRepeat()); }
+  function aoTerminar() { tocar(queue.next(true)); }
 
   // ---- ações de playlist ----
   function criarPlaylist() {
     const n = store.create(nomeNovaPl);
-    if (n) {
-      setPlAberta(n);
-      setNomeNovaPl('');
-      atualizar();
-    }
+    if (n) { setPlAberta(n); setNomeNovaPl(''); atualizar(); }
   }
   function adicionarA(nome: string, t: Track) {
     store.add(nome, { id: t.id, title: titulo(t) });
@@ -226,12 +228,7 @@ export default function App() {
   }
   function criarEAdicionar(t: Track) {
     const n = store.create(nomeMenu);
-    if (n) {
-      store.add(n, { id: t.id, title: titulo(t) });
-      setNomeMenu('');
-      setMenuAdd(null);
-      atualizar();
-    }
+    if (n) { store.add(n, { id: t.id, title: titulo(t) }); setNomeMenu(''); setMenuAdd(null); atualizar(); }
   }
 
   // ---- uma linha de música ----
@@ -242,28 +239,19 @@ export default function App() {
           <div className="t">{titulo(t)}</div>
           <div className="a">{artista(t) || 'Artista desconhecido'}</div>
         </button>
-        <button
-          className="ic"
-          title="Adicionar à playlist"
-          aria-label="Adicionar à playlist"
-          onClick={() => {
-            setNomeMenu('');
-            setMenuAdd(menuAdd === t.id ? null : t.id);
-          }}
-        >
+        <button className="ic" title="Adicionar à playlist" aria-label="Adicionar à playlist"
+          onClick={() => { setNomeMenu(''); setMenuAdd(menuAdd === t.id ? null : t.id); }}>
           <Icon d={P.add} />
         </button>
         {daPlaylist && (
-          <button
-            className="ic"
-            title="Tirar da playlist"
-            aria-label="Tirar da playlist"
-            onClick={() => {
-              store.removeTrack(daPlaylist, t.id);
-              atualizar();
-            }}
-          >
+          <button className="ic" title="Tirar da playlist" aria-label="Tirar da playlist"
+            onClick={() => { store.removeTrack(daPlaylist, t.id); atualizar(); }}>
             <Icon d={P.x} />
+          </button>
+        )}
+        {!MODO_PASTA && !daPlaylist && (
+          <button className="ic" title="Remover do app" aria-label="Remover do app" onClick={() => removerMusica(t)}>
+            <Icon d={P.trash} />
           </button>
         )}
       </div>
@@ -272,40 +260,21 @@ export default function App() {
         <div className="menu">
           <b>Adicionar a:</b>
           <div className="chips">
-            {store.names().length === 0 && (
-              <span className="vazio" style={{ padding: 0 }}>
-                Nenhuma playlist ainda. Crie uma abaixo.
-              </span>
-            )}
+            {store.names().length === 0 && <span className="vazio" style={{ padding: 0 }}>Nenhuma playlist ainda. Crie uma abaixo.</span>}
             {store.names().map((n) => {
               const jaTem = store.tracks(n).some((x) => x.id === t.id);
               return (
-                <button
-                  key={n}
-                  className="chip"
-                  disabled={jaTem}
-                  onClick={() => adicionarA(n, t)}
-                >
-                  {jaTem ? '✓ ' : ''}
-                  {n}
+                <button key={n} className="chip" disabled={jaTem} onClick={() => adicionarA(n, t)}>
+                  {jaTem ? '✓ ' : ''}{n}
                 </button>
               );
             })}
           </div>
           <div className="bar" style={{ marginBottom: 0 }}>
-            <input
-              type="text"
-              placeholder="Nova playlist"
-              maxLength={40}
-              value={nomeMenu}
+            <input type="text" placeholder="Nova playlist" maxLength={40} value={nomeMenu}
               onChange={(e) => setNomeMenu(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') criarEAdicionar(t);
-              }}
-            />
-            <button className="btn small" onClick={() => criarEAdicionar(t)}>
-              Criar e adicionar
-            </button>
+              onKeyDown={(e) => { if (e.key === 'Enter') criarEAdicionar(t); }} />
+            <button className="btn small" onClick={() => criarEAdicionar(t)}>Criar e adicionar</button>
           </div>
         </div>
       )}
@@ -321,24 +290,10 @@ export default function App() {
       <main className="app">
         <div className="aviso">
           <h1>Meu Player</h1>
-          {status === 'sem-suporte' && (
-            <p>
-              Este navegador não permite acessar pastas. Use o Chrome ou o Edge
-              no computador.
-            </p>
-          )}
           {status === 'carregando' && <p>Carregando…</p>}
           {status === 'varrendo' && <p>Procurando músicas em “{pasta}”…</p>}
-          {status === 'sem-pasta' && (
-            <button className="btn" onClick={escolherPasta}>
-              Escolher pasta de músicas
-            </button>
-          )}
-          {status === 'reautorizar' && (
-            <button className="btn" onClick={reautorizar}>
-              Reabrir a pasta “{pasta}”
-            </button>
-          )}
+          {status === 'sem-pasta' && <button className="btn" onClick={escolherPasta}>Escolher pasta de músicas</button>}
+          {status === 'reautorizar' && <button className="btn" onClick={reautorizar}>Reabrir a pasta “{pasta}”</button>}
         </div>
         {erro && <p className="erro">{erro}</p>}
       </main>
@@ -347,87 +302,54 @@ export default function App() {
 
   return (
     <main className="app">
+      <input
+        ref={inputRef} type="file" multiple style={{ display: 'none' }}
+        accept="audio/*,video/mp4,.mp3,.mp4,.m4a,.wav,.ogg,.flac,.aac"
+        onChange={aoEscolherArquivos}
+      />
+
       {/* ---------- Tocando agora ---------- */}
       <section className="now" aria-label="Tocando agora">
         <div className={'disc' + (tocando ? ' on' : '')}>
-          <div
-            className="label"
-            style={capa ? { backgroundImage: `url("${capa}")` } : undefined}
-          />
+          <div className="label" style={capa ? { backgroundImage: `url("${capa}")` } : undefined} />
         </div>
         <h2>{atual ? titulo(atual) : 'Nenhuma música tocando'}</h2>
         <p className="artista">
-          {atual
-            ? artista(atual) || 'Artista desconhecido'
-            : 'Escolha uma música da lista'}
+          {atual ? artista(atual) || 'Artista desconhecido' : 'Escolha uma música da lista'}
         </p>
 
         <div className="seek">
           <span>{fmt(posicao)}</span>
-          <input
-            type="range"
-            min={0}
-            max={duracao || 0}
-            step={0.1}
-            value={posicao}
+          <input type="range" min={0} max={duracao || 0} step={0.1} value={posicao}
             aria-label="Posição da música"
-            onChange={(e) => {
-              audioRef.current!.currentTime = Number(e.target.value);
-            }}
-          />
+            onChange={(e) => { audioRef.current!.currentTime = Number(e.target.value); }} />
           <span>{fmt(duracao)}</span>
         </div>
 
         <div className="ctrl">
-          <button
-            className={aleatorio ? 'on' : ''}
-            title="Aleatório (embaralhar fila)"
-            aria-pressed={aleatorio}
-            onClick={alternarAleatorio}
-          >
+          <button className={aleatorio ? 'on' : ''} title="Aleatório (embaralhar fila)" aria-pressed={aleatorio} onClick={alternarAleatorio}>
             <Icon d={P.shuffle} />
           </button>
-          <button title="Anterior" onClick={anterior}>
-            <Icon d={P.prev} />
-          </button>
+          <button title="Anterior" onClick={anterior}><Icon d={P.prev} /></button>
           <button className="play" title="Tocar / pausar" onClick={playPause}>
             <Icon d={tocando ? P.pause : P.play} />
           </button>
-          <button title="Próxima" onClick={proxima}>
-            <Icon d={P.next} />
-          </button>
-          <button
-            className={repetir !== 'off' ? 'on' : ''}
-            title={rotuloRepetir[repetir]}
-            onClick={alternarRepetir}
-          >
+          <button title="Próxima" onClick={proxima}><Icon d={P.next} /></button>
+          <button className={repetir !== 'off' ? 'on' : ''} title={rotuloRepetir[repetir]} onClick={alternarRepetir}>
             <Icon d={P.repeat} />
             {repetir === 'one' && <span className="badge">1</span>}
           </button>
         </div>
         <div className="ctrl">
-          <button
-            className="jump"
-            title="Pular para uma música aleatória"
-            onClick={aleatoria}
-          >
+          <button className="jump" title="Pular para uma música aleatória" onClick={aleatoria}>
             <Icon d={P.dice} /> Aleatória
           </button>
         </div>
 
         <div className="vol">
           <Icon d={P.vol} />
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            defaultValue={1}
-            aria-label="Volume"
-            onChange={(e) => {
-              audioRef.current!.volume = Number(e.target.value);
-            }}
-          />
+          <input type="range" min={0} max={1} step={0.01} defaultValue={1} aria-label="Volume"
+            onChange={(e) => { audioRef.current!.volume = Number(e.target.value); }} />
         </div>
 
         <audio
@@ -444,32 +366,31 @@ export default function App() {
       {/* ---------- Listas ---------- */}
       <section aria-label="Músicas">
         <div className="tabs" role="tablist">
-          <button
-            role="tab"
-            aria-selected={aba === 'biblioteca'}
-            onClick={() => setAba('biblioteca')}
-          >
-            Biblioteca
-          </button>
-          <button
-            role="tab"
-            aria-selected={aba === 'playlists'}
-            onClick={() => setAba('playlists')}
-          >
-            Playlists
-          </button>
+          <button role="tab" aria-selected={aba === 'biblioteca'} onClick={() => setAba('biblioteca')}>Biblioteca</button>
+          <button role="tab" aria-selected={aba === 'playlists'} onClick={() => setAba('playlists')}>Playlists</button>
         </div>
 
         {aba === 'biblioteca' && (
           <>
-            <div className="resumo">
-              <span>
-                <b>{tracks.length}</b> músicas em “{pasta}”
-              </span>
-              <button className="btn alt small" onClick={escolherPasta}>
-                Trocar pasta
-              </button>
-            </div>
+            {MODO_PASTA ? (
+              <div className="resumo">
+                <span><b>{tracks.length}</b> músicas em “{pasta}”</span>
+                <button className="btn alt small" onClick={escolherPasta}>Trocar pasta</button>
+              </div>
+            ) : (
+              <div className="resumo">
+                <span><b>{tracks.length}</b> músicas salvas no app{uso ? ` · ${uso} usados` : ''}</span>
+                <button className="btn small" disabled={!!ocupado} onClick={() => inputRef.current?.click()}>
+                  Adicionar músicas
+                </button>
+              </div>
+            )}
+            {ocupado && <p className="vazio">{ocupado}</p>}
+            {!MODO_PASTA && tracks.length === 0 && !ocupado && (
+              <p className="vazio">
+                Nenhuma música ainda. Toque em “Adicionar músicas” e escolha os arquivos do aparelho. Eles ficam salvos no app.
+              </p>
+            )}
             <ul className="lista">{tracks.map((t) => linha(t))}</ul>
           </>
         )}
@@ -477,36 +398,19 @@ export default function App() {
         {aba === 'playlists' && (
           <>
             <div className="bar">
-              <input
-                type="text"
-                placeholder="Nome da nova playlist"
-                maxLength={40}
-                value={nomeNovaPl}
+              <input type="text" placeholder="Nome da nova playlist" maxLength={40} value={nomeNovaPl}
                 onChange={(e) => setNomeNovaPl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') criarPlaylist();
-                }}
-              />
-              <button className="btn" onClick={criarPlaylist}>
-                Criar playlist
-              </button>
+                onKeyDown={(e) => { if (e.key === 'Enter') criarPlaylist(); }} />
+              <button className="btn" onClick={criarPlaylist}>Criar playlist</button>
             </div>
 
             {nomes.length === 0 && (
-              <p className="vazio">
-                Nenhuma playlist ainda. Crie uma e adicione músicas pelo botão
-                de adicionar na Biblioteca.
-              </p>
+              <p className="vazio">Nenhuma playlist ainda. Crie uma e adicione músicas pelo botão de adicionar na Biblioteca.</p>
             )}
 
             <div className="chips">
               {nomes.map((n) => (
-                <button
-                  key={n}
-                  className="chip"
-                  aria-pressed={n === plAberta}
-                  onClick={() => setPlAberta(n)}
-                >
+                <button key={n} className="chip" aria-pressed={n === plAberta} onClick={() => setPlAberta(n)}>
                   {n} ({store.tracks(n).length})
                 </button>
               ))}
@@ -515,28 +419,15 @@ export default function App() {
             {plAberta && nomes.includes(plAberta) && (
               <>
                 <div className="bar">
-                  <button
-                    className="btn"
-                    disabled={!itensAbertos.some((i) => porId.has(i.id))}
-                    onClick={() => tocarPlaylist(plAberta)}
-                  >
+                  <button className="btn" disabled={!itensAbertos.some((i) => porId.has(i.id))} onClick={() => tocarPlaylist(plAberta)}>
                     Tocar playlist
                   </button>
-                  <button
-                    className="btn alt"
-                    onClick={() => {
-                      store.remove(plAberta);
-                      setPlAberta(null);
-                      atualizar();
-                    }}
-                  >
+                  <button className="btn alt" onClick={() => { store.remove(plAberta); setPlAberta(null); atualizar(); }}>
                     Excluir playlist
                   </button>
                 </div>
 
-                {itensAbertos.length === 0 && (
-                  <p className="vazio">Esta playlist está vazia.</p>
-                )}
+                {itensAbertos.length === 0 && <p className="vazio">Esta playlist está vazia.</p>}
                 <ul className="lista">
                   {itensAbertos.map((i) => {
                     const t = porId.get(i.id);
@@ -546,19 +437,10 @@ export default function App() {
                         <div className="row miss">
                           <div className="main">
                             <div className="t">{i.title}</div>
-                            <div className="a">
-                              Arquivo não encontrado na pasta
-                            </div>
+                            <div className="a">Arquivo não encontrado no app</div>
                           </div>
-                          <button
-                            className="ic"
-                            title="Tirar da playlist"
-                            aria-label="Tirar da playlist"
-                            onClick={() => {
-                              store.removeTrack(plAberta, i.id);
-                              atualizar();
-                            }}
-                          >
+                          <button className="ic" title="Tirar da playlist" aria-label="Tirar da playlist"
+                            onClick={() => { store.removeTrack(plAberta, i.id); atualizar(); }}>
                             <Icon d={P.x} />
                           </button>
                         </div>

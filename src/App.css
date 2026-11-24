@@ -216,23 +216,6 @@ ul.lista { list-style: none; padding: 0; }
 /* TEXTO DE "VAZIO": "Nenhuma playlist ainda..." etc. */
 .vazio { color: var(--mute); padding: 20px 8px; text-align: center; }
 
-
-/* =====================================================================
-   AJUSTES PARA TELAS DE TOQUE (não afeta computador com mouse)
-   "pointer: coarse" = o aparelho é usado com o dedo.
-   ===================================================================== */
-@media (pointer: coarse) {
-  /* Impede o aumento automático do texto em alguns celulares. */
-  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-  /* Impede a página de ser arrastada para os lados. */
-  body { overflow-x: hidden; }
-  /* Impede o ZOOM por toque duplo em botões e campos (a pinça de 2 dedos continua funcionando). */
-  button, input, label, .row, .chip { touch-action: manipulation; }
-  /* Tira o "flash" cinza ao tocar e impede selecionar o texto dos botões sem querer. */
-  button { -webkit-tap-highlight-color: transparent; user-select: none; }
-}
-
-
 /* =====================================================================
    AJUSTES SÓ PARA CELULAR (tela até 760px de largura)
    Tudo daqui para baixo NÃO afeta o computador.
@@ -276,4 +259,36 @@ ul.lista { list-style: none; padding: 0; }
 
   /* O resumo pode quebrar em duas linhas se faltar espaço. */
   .resumo { flex-wrap: wrap; }
+}
+/* =====================================================================
+   ZOOM NO COMPUTADOR
+   O player só fica "fixo" na tela (acompanhando a rolagem) quando cabe
+   inteiro na altura da janela. Com zoom ou janela baixa, ele rola junto
+   com a página, e nada fica cortado.
+   Em zoom alto a largura diminui e o app já vira uma coluna sozinho
+   (regra de 760px lá em cima).
+   Para o player fixar só com janelas mais altas, aumente o 640px.
+   ===================================================================== */
+@media (min-width: 761px) and (max-height: 640px) {
+  .now { position: static; }
+}
+
+
+/* =====================================================================
+   CELULAR / TELAS DE TOQUE: SEM ZOOM
+   "pointer: coarse" = aparelho usado com o dedo (não afeta mouse).
+   ===================================================================== */
+@media (pointer: coarse) {
+  /* Impede o aumento automático do texto em alguns celulares. */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  /* Impede a página de ser arrastada para os lados. */
+  body { overflow-x: hidden; }
+  /* SEM ZOOM: a página só aceita rolar (para cima/baixo e lados).
+     Pinça (2 dedos) e toque duplo deixam de dar zoom. */
+  html, body { touch-action: pan-x pan-y; }
+  button, label, .row, .chip { touch-action: manipulation; }
+  /* As barras deslizantes (progresso e volume) só aceitam arrastar de lado. */
+  input[type='range'] { touch-action: pan-y; }
+  /* Tira o "flash" cinza ao tocar e impede selecionar o texto dos botões. */
+  button { -webkit-tap-highlight-color: transparent; user-select: none; }
 }

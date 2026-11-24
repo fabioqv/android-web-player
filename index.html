@@ -2,26 +2,45 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- TELA: "maximum-scale=1" e "user-scalable=no" desligam o zoom no celular.
+         Isso não afeta o zoom do computador (Ctrl + / Ctrl −).
+         Para voltar a permitir zoom, troque por:
+         width=device-width, initial-scale=1.0, viewport-fit=cover -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
     <title>Meu Player</title>
 
+    <!-- APP INSTALÁVEL: manifesto, ícones e cor da barra do sistema -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="/icon-192.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#15131f" />
 
+    <!-- iPhone: abre em tela cheia quando instalado -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Player" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   </head>
   <body>
+    <!-- Aqui o React desenha o app -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
     <script>
+      // FUNCIONAMENTO SEM INTERNET: registra o arquivo sw.js
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
           navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+      }
+
+      // iPHONE: o Safari ignora o "user-scalable=no", então a pinça é bloqueada aqui.
+      // Só vale em telas de toque, para não atrapalhar o trackpad do Mac.
+      if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+        ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (nome) {
+          document.addEventListener(nome, function (e) { e.preventDefault(); });
         });
       }
     </script>

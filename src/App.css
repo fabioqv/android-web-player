@@ -122,3 +122,51 @@ ul.lista { list-style: none; padding: 0; }
 .chip[aria-pressed='true'] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
 .vazio { color: var(--mute); padding: 20px 8px; text-align: center; }
+
+/* ===== Ajustes só para telas de toque (não afeta computador com mouse) ===== */
+@media (pointer: coarse) {
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { overflow-x: hidden; }
+  button, input, label, .row, .chip { touch-action: manipulation; }
+  button { -webkit-tap-highlight-color: transparent; user-select: none; }
+}
+
+/* ===== Ajustes só para celular (tela estreita) ===== */
+@media (max-width: 760px) {
+  /* Reserva espaço para a barra de status e a barra de navegação do Android */
+  .app {
+    gap: 16px;
+    padding-top: calc(20px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    padding-right: calc(16px + env(safe-area-inset-right, 0px));
+  }
+  .app > * { min-width: 0; }
+
+  /* Player mais compacto: a lista aparece sem rolar tanto */
+  .disc { width: min(200px, 52vw); margin-bottom: 14px; }
+  .now h2 { font-size: 1.25rem; }
+  .seek { margin: 14px 0 6px; }
+  .vol { margin-top: 8px; }
+
+  /* Alvos de toque maiores (mínimo recomendado: 44 px) */
+  .ctrl button { width: 48px; height: 48px; }
+  .ctrl .play { width: 64px; height: 64px; }
+  .ctrl .jump { height: 44px; }
+  .row .ic { width: 44px; height: 44px; }
+  .row .main { padding: 12px; }
+  .btn, .chip { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .bar input[type='text'] { min-height: 44px; }
+  input[type='range'] { height: 32px; }
+
+  /* Abas fixas no topo ao rolar a lista */
+  .tabs {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    background: var(--bg);
+    z-index: 5;
+  }
+  .tabs button { flex: 1; padding: 14px 16px; }
+
+  .resumo { flex-wrap: wrap; }
+}

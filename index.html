@@ -5,7 +5,7 @@
 
     <!-- TELA: "maximum-scale=1" e "user-scalable=no" desligam o zoom no celular.
          Isso não afeta o zoom do computador (Ctrl + / Ctrl −).
-         Para voltar a permitir zoom, troque por:
+         Para voltar a permitir zoom no celular, troque por:
          width=device-width, initial-scale=1.0, viewport-fit=cover -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 
@@ -22,6 +22,35 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Player" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <script>
+      // COMPENSAÇÃO DO ZOOM (só computador, Chrome/Edge):
+      // Descobre o zoom do navegador comparando a largura da janela (outerWidth,
+      // que não muda com o zoom) com a largura da página (innerWidth, que muda).
+      // Se o zoom for menor que 100%, o texto base aumenta na mesma proporção
+      // (variável --escala, usada no index.css) e o app mantém o tamanho aparente.
+      // Para DESLIGAR essa compensação, apague este bloco inteiro <script>.
+      (function () {
+        var NIVEIS = [0.25, 1 / 3, 0.5, 2 / 3, 0.75, 0.8, 0.9, 1]; // zoom do Chrome/Edge
+        function ajustar() {
+          var escala = 1;
+          var toque = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+          if (!toque && window.innerWidth > 0) {
+            var z = window.outerWidth / window.innerWidth;
+            if (z > 0.2 && z < 0.95) {
+              var melhor = NIVEIS[0];
+              NIVEIS.forEach(function (n) {
+                if (Math.abs(n - z) < Math.abs(melhor - z)) melhor = n;
+              });
+              escala = 1 / melhor;
+            }
+          }
+          document.documentElement.style.setProperty('--escala', String(escala));
+        }
+        ajustar();
+        window.addEventListener('resize', ajustar);
+      })();
+    </script>
   </head>
   <body>
     <!-- Aqui o React desenha o app -->

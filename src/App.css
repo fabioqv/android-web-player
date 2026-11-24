@@ -1,7 +1,11 @@
 /* =====================================================================
    APP.CSS — layout e aparência de cada peça do app
-   Estrutura da tela (de cima para baixo):
+   Medidas em "rem": 1rem = 16px no zoom normal. Ao diminuir o zoom do
+   navegador, o rem cresce (veja o script do index.html) e o app mantém
+   o mesmo tamanho aparente.
+   Para converter: px ÷ 16 = rem (ex.: 260px = 16.25rem).
 
+   Estrutura da tela (de cima para baixo):
    .app ............... a página toda (2 colunas no PC, 1 no celular)
      .now ............. COLUNA ESQUERDA: o player "Tocando agora"
         .disc ......... o disco de vinil
@@ -26,26 +30,25 @@
    LAYOUT GERAL
    --------------------------------------------------------------------- */
 
-/* A PÁGINA TODA: divide em duas colunas no computador.
-   - "minmax(0, 380px)" = coluna do player, no máximo 380px de largura.
-   - "minmax(0, 1fr)"   = coluna da lista, ocupa o resto.
-   - gap = espaço entre as colunas.
-   - max-width = largura máxima do app; margin auto = centraliza. */
+/* A PÁGINA TODA: duas colunas no computador.
+   - minmax(0, 23.75rem) = coluna do player, no máximo 380px de largura.
+   - minmax(0, 1fr)      = coluna da lista, ocupa o resto.
+   - max-width = largura máxima do app (62.5rem = 1000px); margin auto = centraliza. */
 .app {
   display: grid;
-  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
-  gap: 32px;
-  max-width: 1000px;
+  grid-template-columns: minmax(0, 23.75rem) minmax(0, 1fr);
+  gap: 2rem;
+  max-width: 62.5rem;
   margin: 0 auto;
-  padding: 28px 20px 40px;
+  padding: 1.75rem 1.25rem 2.5rem;
 }
 
-/* NO CELULAR (tela até 760px): vira uma coluna só e o espaço entre as partes diminui. */
-@media (max-width: 760px) { .app { grid-template-columns: 1fr; gap: 24px; } }
+/* NO CELULAR (tela até 760px): uma coluna só. */
+@media (max-width: 760px) { .app { grid-template-columns: 1fr; gap: 1.5rem; } }
 
-/* MENSAGENS DE ESTADO: "Carregando…", "Escolher pasta" etc. (tela antes de a biblioteca abrir) */
-.aviso { grid-column: 1 / -1; text-align: center; padding: 40px 0; color: var(--mute); }
-.aviso h1 { color: var(--ink); margin-bottom: 14px; }
+/* MENSAGENS DE ESTADO: "Carregando…", "Escolher pasta" etc. */
+.aviso { grid-column: 1 / -1; text-align: center; padding: 2.5rem 0; color: var(--mute); }
+.aviso h1 { color: var(--ink); margin-bottom: 0.875rem; }
 
 /* MENSAGEM DE ERRO (texto na cor de destaque) */
 .erro { grid-column: 1 / -1; color: var(--accent); }
@@ -57,46 +60,42 @@
 
 /* O PLAYER: texto centralizado. "sticky" faz ele ficar fixo na tela
    enquanto você rola a lista no computador (top = distância do topo). */
-.now { text-align: center; align-self: start; position: sticky; top: 20px; }
-/* No celular o player rola junto com a página (sem ficar fixo). */
+.now { text-align: center; align-self: start; position: sticky; top: 1.25rem; }
+/* No celular o player rola junto com a página. */
 @media (max-width: 760px) { .now { position: static; } }
 
 /* O DISCO DE VINIL:
-   - width: tamanho (260px no máximo; em telas pequenas, 70% da largura).
-   - border-radius: 50% = círculo.
+   - width: tamanho (16.25rem = 260px no máximo; em telas pequenas, 70% da largura).
    - background: os "sulcos" (anéis finos) feitos com gradiente.
-   - box-shadow: sombra embaixo do disco.
-   - animation: gira 6 segundos por volta, sem parar... mas começa PAUSADO. */
+   - animation: gira 6 segundos por volta, mas começa PAUSADO. */
 .disc {
-  width: min(260px, 70vw);
+  width: min(16.25rem, 70vw);
   aspect-ratio: 1;
-  margin: 0 auto 22px;
+  margin: 0 auto 1.375rem;
   border-radius: 50%;
-  background: repeating-radial-gradient(circle at center, var(--vinyl) 0 3px, #2a2740 3.5px 4px);
+  background: repeating-radial-gradient(circle at center, var(--vinyl) 0 0.1875rem, #2a2740 0.21875rem 0.25rem);
   display: grid;
   place-items: center;
-  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1.125rem 2.5rem -1.125rem rgba(0, 0, 0, 0.5);
   animation: spin 6s linear infinite;
   animation-play-state: paused;
 }
-/* Quando a música está tocando, o app adiciona a classe "on" e o disco gira.
-   Para girar mais rápido, diminua os "6s" acima. */
+/* Tocando: o app adiciona a classe "on" e o disco gira. Para girar mais rápido, diminua os "6s". */
 .disc.on { animation-play-state: running; }
 @keyframes spin { to { transform: rotate(360deg); } }
 /* Respeita quem desativou animações no aparelho (acessibilidade). */
 @media (prefers-reduced-motion: reduce) { .disc { animation: none; } }
 
-/* O MIOLO DO DISCO: círculo no centro (38% do disco). Mostra a capa do álbum;
-   sem capa, fica na cor de destaque. */
+/* O MIOLO DO DISCO: círculo no centro (38% do disco). Mostra a capa; sem capa, fica na cor de destaque. */
 .label {
   width: 38%;
   aspect-ratio: 1;
   border-radius: 50%;
   background: var(--accent) center / cover;
-  border: 3px solid var(--vinyl);
+  border: 0.1875rem solid var(--vinyl);
   position: relative;
 }
-/* O FURINHO no meio do disco (círculo pequeno na cor do fundo). */
+/* O FURINHO no meio do disco. */
 .label::after {
   content: '';
   position: absolute;
@@ -110,23 +109,22 @@
 
 /* TÍTULO DA MÚSICA (grande, negrito) e ARTISTA (menor, cinza). */
 .now h2 { font-size: 1.5rem; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
-.now .artista { color: var(--mute); margin-top: 4px; min-height: 1.45em; }
+.now .artista { color: var(--mute); margin-top: 0.25rem; min-height: 1.45em; }
 
 /* BARRA DE PROGRESSO: tempo atual + barra + duração, lado a lado. */
 .seek {
-  display: flex; align-items: center; gap: 10px;
-  margin: 20px 0 8px;
+  display: flex; align-items: center; gap: 0.625rem;
+  margin: 1.25rem 0 0.5rem;
   font-size: 0.8rem; color: var(--mute);
   font-variant-numeric: tabular-nums;   /* números com largura igual: o tempo não "pula" */
 }
 /* TODAS AS BARRAS DESLIZANTES (progresso e volume): "accent-color" é a cor delas. */
-input[type='range'] { flex: 1; accent-color: var(--accent); height: 24px; min-width: 0; }
+input[type='range'] { flex: 1; accent-color: var(--accent); height: 1.5rem; min-width: 0; }
 
-/* LINHA DE BOTÕES DO PLAYER (aleatório, anterior, play, próxima, repetir):
-   cada um é um círculo de 44px com ícone cinza. */
-.ctrl { display: flex; justify-content: center; align-items: center; gap: 6px; }
+/* LINHA DE BOTÕES DO PLAYER: cada um é um círculo de 2.75rem (44px) com ícone cinza. */
+.ctrl { display: flex; justify-content: center; align-items: center; gap: 0.375rem; }
 .ctrl button {
-  width: 44px; height: 44px; border-radius: 50%;
+  width: 2.75rem; height: 2.75rem; border-radius: 50%;
   display: grid; place-items: center; color: var(--mute);
   position: relative;
 }
@@ -134,152 +132,110 @@ input[type='range'] { flex: 1; accent-color: var(--accent); height: 24px; min-wi
 .ctrl button.on { color: var(--accent); }       /* ligado (aleatório/repetir): cor de destaque */
 
 /* O BOTÃO PLAY/PAUSA: o grande, colorido, no meio. */
-.ctrl .play { width: 62px; height: 62px; background: var(--accent); color: var(--on-accent); margin: 0 6px; }
+.ctrl .play { width: 3.875rem; height: 3.875rem; background: var(--accent); color: var(--on-accent); margin: 0 0.375rem; }
 .ctrl .play:hover { color: var(--on-accent); filter: brightness(1.08); }
-.ctrl .play svg { width: 28px; height: 28px; }   /* tamanho do ícone do play */
+.ctrl .play svg { width: 1.75rem; height: 1.75rem; }
 
-/* O "1" pequeno que aparece sobre o ícone de repetir quando está em "repetir uma música". */
-.ctrl .badge { position: absolute; right: 8px; bottom: 6px; font-size: 0.65rem; font-weight: 800; }
+/* O "1" pequeno sobre o ícone de repetir no modo "repetir uma música". */
+.ctrl .badge { position: absolute; right: 0.5rem; bottom: 0.375rem; font-size: 0.65rem; font-weight: 800; }
 
 /* O BOTÃO "ALEATÓRIA" (com o dado): formato de pílula, mais largo que os outros. */
 .ctrl .jump {
-  width: auto; border-radius: 99px; padding: 0 14px; height: 36px;
-  display: flex; gap: 8px; font-size: 0.9rem; font-weight: 600; margin-top: 6px;
+  width: auto; border-radius: 99px; padding: 0 0.875rem; height: 2.25rem;
+  display: flex; gap: 0.5rem; font-size: 0.9rem; font-weight: 600; margin-top: 0.375rem;
 }
 
-/* VOLUME: ícone de alto-falante + barra de 140px. */
-.vol { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 14px; color: var(--mute); }
-.vol svg { width: 18px; height: 18px; }
-.vol input { flex: none; width: 140px; }
+/* VOLUME: ícone de alto-falante + barra de 8.75rem (140px). */
+.vol { display: flex; align-items: center; gap: 0.5rem; justify-content: center; margin-top: 0.875rem; color: var(--mute); }
+.vol svg { width: 1.125rem; height: 1.125rem; }
+.vol input { flex: none; width: 8.75rem; }
 
 
 /* ---------------------------------------------------------------------
    COLUNA DIREITA: ABAS E LISTAS
    --------------------------------------------------------------------- */
 
-/* AS ABAS "Biblioteca | Playlists": linha fina embaixo; a aba ativa ganha
-   um traço colorido (aria-selected='true' = aba escolhida no momento). */
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+/* AS ABAS "Biblioteca | Playlists": a aba ativa ganha um traço colorido. */
+.tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--line); margin-bottom: 0.875rem; }
 .tabs button {
-  padding: 10px 14px; color: var(--mute); font-weight: 600;
+  padding: 0.625rem 0.875rem; color: var(--mute); font-weight: 600;
   border-bottom: 2px solid transparent; margin-bottom: -1px;
 }
 .tabs button[aria-selected='true'] { color: var(--ink); border-color: var(--accent); }
 
 /* RESUMO: "N músicas em..." (ou "salvas no app") + botão à direita. */
-.resumo { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--mute); margin-bottom: 8px; font-size: 0.9rem; }
+.resumo { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; color: var(--mute); margin-bottom: 0.5rem; font-size: 0.9rem; }
 
 /* A LISTA DE MÚSICAS (sem bolinhas) */
 ul.lista { list-style: none; padding: 0; }
 
 /* UMA LINHA DE MÚSICA: cantos arredondados. Ao passar o mouse ganha fundo. */
-.row { display: flex; align-items: center; gap: 4px; border-radius: 12px; padding-right: 4px; }
+.row { display: flex; align-items: center; gap: 0.25rem; border-radius: 0.75rem; padding-right: 0.25rem; }
 .row:hover { background: var(--surface); }
 /* A MÚSICA QUE ESTÁ TOCANDO: fundo + barra colorida na lateral esquerda. */
-.row.cur { background: var(--surface); box-shadow: inset 3px 0 0 var(--accent); }
+.row.cur { background: var(--surface); box-shadow: inset 0.1875rem 0 0 var(--accent); }
 /* A PARTE CLICÁVEL DA LINHA (título + artista). */
-.row .main { flex: 1; min-width: 0; text-align: left; padding: 10px 12px; }
+.row .main { flex: 1; min-width: 0; text-align: left; padding: 0.625rem 0.75rem; }
 /* TÍTULO na linha (negrito) e ARTISTA (menor, cinza); texto longo vira "…". */
 .row .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .a { font-size: 0.85rem; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* LINHA DE ARQUIVO NÃO ENCONTRADO (música da playlist que sumiu): fica apagada. */
 .row.miss { opacity: 0.5; }
 /* BOTÕES REDONDOS DA LINHA: adicionar à playlist, tirar da playlist, lixeira. */
-.row .ic { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--mute); }
+.row .ic { width: 2.25rem; height: 2.25rem; border-radius: 50%; display: grid; place-items: center; color: var(--mute); }
 .row .ic:hover { color: var(--accent); }
-.row .ic svg { width: 18px; height: 18px; }
+.row .ic svg { width: 1.125rem; height: 1.125rem; }
 
 /* A CAIXINHA "Adicionar a:" que abre embaixo de uma música. */
-.menu { margin: 2px 0 10px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
-.menu b { display: block; margin-bottom: 8px; }
+.menu { margin: 0.125rem 0 0.625rem 0.75rem; padding: 0.75rem; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--surface); }
+.menu b { display: block; margin-bottom: 0.5rem; }
 
 /* LINHA DE CAMPO DE TEXTO + BOTÃO (criar playlist). */
-.bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
 .bar input[type='text'] {
-  flex: 1; min-width: 140px; padding: 9px 12px; border-radius: 10px;
+  flex: 1; min-width: 8.75rem; padding: 0.5625rem 0.75rem; border-radius: 0.625rem;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit;
 }
 
 /* BOTÕES DE TEXTO:
-   .btn      = botão principal (cor de destaque)
-   .btn.alt  = botão secundário (fundo claro com borda)
+   .btn       = botão principal (cor de destaque)
+   .btn.alt   = botão secundário (fundo claro com borda)
    .btn.small = versão menor */
-.btn { padding: 9px 14px; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.btn { padding: 0.5625rem 0.875rem; border-radius: 0.625rem; background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .btn.alt { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
-.btn.small { padding: 6px 12px; }
+.btn.small { padding: 0.375rem 0.75rem; }
 
 /* CHIPS: botões arredondados com o nome das playlists. O escolhido fica escuro/cheio. */
-.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-.chip { padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); color: var(--mute); }
+.chips { display: flex; gap: 0.375rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.chip { padding: 0.375rem 0.75rem; border-radius: 99px; border: 1px solid var(--line); color: var(--mute); }
 .chip[aria-pressed='true'] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
 /* TEXTO DE "VAZIO": "Nenhuma playlist ainda..." etc. */
-.vazio { color: var(--mute); padding: 20px 8px; text-align: center; }
+.vazio { color: var(--mute); padding: 1.25rem 0.5rem; text-align: center; }
 
-/* =====================================================================
-   AJUSTES SÓ PARA CELULAR (tela até 760px de largura)
-   Tudo daqui para baixo NÃO afeta o computador.
-   ===================================================================== */
-@media (max-width: 760px) {
-  /* Espaço extra nas bordas para não ficar atrás da barra de status e da barra de
-     navegação do Android. "env(safe-area-inset-...)" é o tamanho dessas barras. */
-  .app {
-    gap: 16px;
-    padding-top: calc(20px + env(safe-area-inset-top, 0px));
-    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
-    padding-left: calc(16px + env(safe-area-inset-left, 0px));
-    padding-right: calc(16px + env(safe-area-inset-right, 0px));
-  }
-  .app > * { min-width: 0; }   /* impede conteúdo largo de empurrar a tela */
 
-  /* PLAYER MAIS COMPACTO: disco menor e menos espaços, para a lista aparecer sem rolar tanto. */
-  .disc { width: min(200px, 52vw); margin-bottom: 14px; }
-  .now h2 { font-size: 1.25rem; }
-  .seek { margin: 14px 0 6px; }
-  .vol { margin-top: 8px; }
-
-  /* BOTÕES MAIORES, mais fáceis de acertar com o polegar (44px é o mínimo recomendado). */
-  .ctrl button { width: 48px; height: 48px; }
-  .ctrl .play { width: 64px; height: 64px; }
-  .ctrl .jump { height: 44px; }
-  .row .ic { width: 44px; height: 44px; }
-  .row .main { padding: 12px; }
-  .btn, .chip { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-  .bar input[type='text'] { min-height: 44px; }
-  input[type='range'] { height: 32px; }
-
-  /* ABAS FIXAS NO TOPO enquanto você rola a lista. */
-  .tabs {
-    position: sticky;
-    top: env(safe-area-inset-top, 0px);
-    background: var(--bg);
-    z-index: 5;
-  }
-  .tabs button { flex: 1; padding: 14px 16px; }
-
-  /* O resumo pode quebrar em duas linhas se faltar espaço. */
-  .resumo { flex-wrap: wrap; }
-}
 /* =====================================================================
    ZOOM NO COMPUTADOR
-   Em zoom alto a janela "encolhe" (em pixels do site), então o layout
-   se reorganiza por largura e altura. Para mudar quando vira uma
-   coluna só, troque o 1000px (aparece duas vezes abaixo).
+   Zoom PARA MENOS: o script do index.html aumenta o rem e o app mantém
+   o tamanho aparente (nada a fazer aqui).
+   Zoom PARA MAIS ou janela estreita: reorganiza (regras abaixo).
+   Para mudar quando vira uma coluna só, troque o 1000px (aparece 3 vezes).
+   Obs.: os valores em px dentro de @media são do tamanho da janela, e ficam em px.
    ===================================================================== */
 
 /* Janela estreita (zoom alto ou janela pequena): uma coluna só, igual ao celular */
 @media (min-width: 761px) and (max-width: 1000px) {
-  .app { grid-template-columns: 1fr; gap: 24px; }
+  .app { grid-template-columns: 1fr; gap: 1.5rem; }
   .now { position: static; }
 }
 
 /* Janela larga: o player fica fixo, mas nunca maior que a janela.
    Se não couber, ele ganha uma rolagem própria em vez de cortar. */
 @media (min-width: 1001px) {
-  .now { max-height: calc(100vh - 40px); overflow-y: auto; scrollbar-width: thin; }
+  .now { max-height: calc(100vh - 2.5rem); overflow-y: auto; scrollbar-width: thin; }
 }
 
-/* Janela larga mas baixa (zoom alto): o player rola junto com a página */
+/* Janela larga mas baixa: o player rola junto com a página */
 @media (min-width: 1001px) and (max-height: 640px) {
   .now { position: static; max-height: none; overflow: visible; }
 }
@@ -294,12 +250,57 @@ ul.lista { list-style: none; padding: 0; }
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   /* Impede a página de ser arrastada para os lados. */
   body { overflow-x: hidden; }
-  /* SEM ZOOM: a página só aceita rolar (para cima/baixo e lados).
-     Pinça (2 dedos) e toque duplo deixam de dar zoom. */
+  /* SEM ZOOM: a página só aceita rolar. Pinça (2 dedos) e toque duplo não dão zoom. */
   html, body { touch-action: pan-x pan-y; }
   button, label, .row, .chip { touch-action: manipulation; }
   /* As barras deslizantes (progresso e volume) só aceitam arrastar de lado. */
   input[type='range'] { touch-action: pan-y; }
   /* Tira o "flash" cinza ao tocar e impede selecionar o texto dos botões. */
   button { -webkit-tap-highlight-color: transparent; user-select: none; }
+}
+
+
+/* =====================================================================
+   AJUSTES SÓ PARA CELULAR (tela até 760px de largura)
+   Tudo daqui para baixo NÃO afeta o computador.
+   ===================================================================== */
+@media (max-width: 760px) {
+  /* Espaço extra nas bordas para não ficar atrás da barra de status e da barra de
+     navegação do Android. "env(safe-area-inset-...)" é o tamanho dessas barras. */
+  .app {
+    gap: 1rem;
+    padding-top: calc(1.25rem + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(1rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(1rem + env(safe-area-inset-right, 0px));
+  }
+  .app > * { min-width: 0; }   /* impede conteúdo largo de empurrar a tela */
+
+  /* PLAYER MAIS COMPACTO: disco menor e menos espaços. */
+  .disc { width: min(12.5rem, 52vw); margin-bottom: 0.875rem; }
+  .now h2 { font-size: 1.25rem; }
+  .seek { margin: 0.875rem 0 0.375rem; }
+  .vol { margin-top: 0.5rem; }
+
+  /* BOTÕES MAIORES, mais fáceis de acertar com o polegar (2.75rem = 44px é o mínimo recomendado). */
+  .ctrl button { width: 3rem; height: 3rem; }
+  .ctrl .play { width: 4rem; height: 4rem; }
+  .ctrl .jump { height: 2.75rem; }
+  .row .ic { width: 2.75rem; height: 2.75rem; }
+  .row .main { padding: 0.75rem; }
+  .btn, .chip { min-height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; }
+  .bar input[type='text'] { min-height: 2.75rem; }
+  input[type='range'] { height: 2rem; }
+
+  /* ABAS FIXAS NO TOPO enquanto você rola a lista. */
+  .tabs {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    background: var(--bg);
+    z-index: 5;
+  }
+  .tabs button { flex: 1; padding: 0.875rem 1rem; }
+
+  /* O resumo pode quebrar em duas linhas se faltar espaço. */
+  .resumo { flex-wrap: wrap; }
 }

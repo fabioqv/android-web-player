@@ -1,17 +1,34 @@
+/* =====================================================================
+   INDEX.CSS — configurações gerais do site (cores, fonte, base)
+   Para mudar o visual do app inteiro de uma vez, mexa AQUI.
+   ===================================================================== */
+
+/* FONTE: baixa a fonte "Bricolage Grotesque" do Google Fonts.
+   Para trocar a fonte, troque o nome na URL e também no "font" do body abaixo. */
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap');
 
+
+/* -------------------------------------------------------------
+   CORES DO MODO CLARO (usadas quando o celular/PC está no claro)
+   Cada cor tem um nome (variável). Mude o valor depois dos dois pontos
+   e a cor muda no app inteiro. Formato: #RRGGBB.
+   ------------------------------------------------------------- */
 :root {
-  --bg: #f2eff6;
-  --surface: #ffffff;
-  --ink: #1c1a2b;
-  --mute: #6b6880;
-  --line: #dcd8e6;
-  --accent: #e8436e;
-  --on-accent: #ffffff;
-  --vinyl: #1c1a2b;
-  color-scheme: light;
+  --bg: #f2eff6;         /* fundo da página inteira */
+  --surface: #ffffff;    /* fundo de "cartões": linha tocando, caixas, campos de texto */
+  --ink: #1c1a2b;        /* cor do texto principal e dos títulos */
+  --mute: #6b6880;       /* cor do texto secundário (artista, tempo, ícones apagados) */
+  --line: #dcd8e6;       /* cor das linhas e bordas finas */
+  --accent: #e8436e;     /* COR DE DESTAQUE: botão play, aba ativa, barras, ícones ligados */
+  --on-accent: #ffffff;  /* cor do texto/ícone que fica SOBRE a cor de destaque */
+  --vinyl: #1c1a2b;      /* cor preta do disco de vinil */
+  color-scheme: light;   /* avisa o navegador que é tema claro (barras de rolagem etc.) */
 }
 
+/* -------------------------------------------------------------
+   CORES DO MODO ESCURO (só vale quando o aparelho está no escuro)
+   Mesmos nomes, valores diferentes.
+   ------------------------------------------------------------- */
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #15131f;
@@ -26,8 +43,12 @@
   }
 }
 
+/* Faz padding e borda contarem DENTRO da largura dos elementos
+   (evita que as coisas "estourem" para fora) e zera as margens padrão. */
 * { box-sizing: border-box; margin: 0; }
 
+/* CORPO DA PÁGINA: fundo, cor do texto, fonte e tamanho base.
+   "16px" é o tamanho padrão do texto; "1.45" é o espaço entre linhas. */
 body {
   background: var(--bg);
   color: var(--ink);
@@ -35,7 +56,14 @@ body {
   min-height: 100vh;
 }
 
+/* BOTÕES: tiram o visual padrão do navegador (cinza com borda).
+   Cada botão ganha seu visual nas regras do App.css. */
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
-button:disabled { opacity: 0.4; cursor: default; }
+button:disabled { opacity: 0.4; cursor: default; }   /* botão desativado fica apagado */
+
+/* CONTORNO DE FOCO: a linha na cor de destaque que aparece ao navegar com o teclado.
+   É importante para acessibilidade, melhor não remover. */
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ÍCONES: todos os desenhos (play, próxima...) são SVG. Este é o tamanho padrão deles. */
 svg { width: 22px; height: 22px; fill: currentColor; display: block; }

@@ -9,9 +9,18 @@
 
 
 /* -------------------------------------------------------------
+   COMPENSAÇÃO DO ZOOM (computador)
+   O tamanho base do texto é 16px multiplicado por "--escala".
+   O script do index.html define --escala (1 = normal; 2 = zoom em 50%).
+   Todos os tamanhos do app usam "rem" (múltiplos deste valor), então o app
+   inteiro cresce junto quando o zoom é diminuído.
+   ------------------------------------------------------------- */
+html { font-size: calc(16px * var(--escala, 1)); }
+
+
+/* -------------------------------------------------------------
    CORES DO MODO CLARO (usadas quando o celular/PC está no claro)
-   Cada cor tem um nome (variável). Mude o valor depois dos dois pontos
-   e a cor muda no app inteiro. Formato: #RRGGBB.
+   Mude o valor depois dos dois pontos e a cor muda no app inteiro.
    ------------------------------------------------------------- */
 :root {
   --bg: #f2eff6;         /* fundo da página inteira */
@@ -27,7 +36,6 @@
 
 /* -------------------------------------------------------------
    CORES DO MODO ESCURO (só vale quando o aparelho está no escuro)
-   Mesmos nomes, valores diferentes.
    ------------------------------------------------------------- */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -44,26 +52,25 @@
 }
 
 /* Faz padding e borda contarem DENTRO da largura dos elementos
-   (evita que as coisas "estourem" para fora) e zera as margens padrão. */
+   e zera as margens padrão. */
 * { box-sizing: border-box; margin: 0; }
 
 /* CORPO DA PÁGINA: fundo, cor do texto, fonte e tamanho base.
-   "16px" é o tamanho padrão do texto; "1.45" é o espaço entre linhas. */
+   "1rem" = tamanho padrão do texto; "1.45" = espaço entre linhas. */
 body {
   background: var(--bg);
   color: var(--ink);
-  font: 400 16px/1.45 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font: 400 1rem/1.45 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
   min-height: 100vh;
 }
 
-/* BOTÕES: tiram o visual padrão do navegador (cinza com borda).
-   Cada botão ganha seu visual nas regras do App.css. */
+/* BOTÕES: tiram o visual padrão do navegador. Cada botão ganha seu visual no App.css. */
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 button:disabled { opacity: 0.4; cursor: default; }   /* botão desativado fica apagado */
 
-/* CONTORNO DE FOCO: a linha na cor de destaque que aparece ao navegar com o teclado.
-   É importante para acessibilidade, melhor não remover. */
+/* CONTORNO DE FOCO: a linha na cor de destaque ao navegar com o teclado.
+   Importante para acessibilidade, melhor não remover. */
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* ÍCONES: todos os desenhos (play, próxima...) são SVG. Este é o tamanho padrão deles. */
-svg { width: 22px; height: 22px; fill: currentColor; display: block; }
+/* ÍCONES: todos os desenhos (play, próxima...) são SVG. Tamanho padrão: 1.375rem (22px). */
+svg { width: 1.375rem; height: 1.375rem; fill: currentColor; display: block; }

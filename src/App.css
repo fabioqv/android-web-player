@@ -262,15 +262,26 @@ ul.lista { list-style: none; padding: 0; }
 }
 /* =====================================================================
    ZOOM NO COMPUTADOR
-   O player só fica "fixo" na tela (acompanhando a rolagem) quando cabe
-   inteiro na altura da janela. Com zoom ou janela baixa, ele rola junto
-   com a página, e nada fica cortado.
-   Em zoom alto a largura diminui e o app já vira uma coluna sozinho
-   (regra de 760px lá em cima).
-   Para o player fixar só com janelas mais altas, aumente o 640px.
+   Em zoom alto a janela "encolhe" (em pixels do site), então o layout
+   se reorganiza por largura e altura. Para mudar quando vira uma
+   coluna só, troque o 1000px (aparece duas vezes abaixo).
    ===================================================================== */
-@media (min-width: 761px) and (max-height: 640px) {
+
+/* Janela estreita (zoom alto ou janela pequena): uma coluna só, igual ao celular */
+@media (min-width: 761px) and (max-width: 1000px) {
+  .app { grid-template-columns: 1fr; gap: 24px; }
   .now { position: static; }
+}
+
+/* Janela larga: o player fica fixo, mas nunca maior que a janela.
+   Se não couber, ele ganha uma rolagem própria em vez de cortar. */
+@media (min-width: 1001px) {
+  .now { max-height: calc(100vh - 40px); overflow-y: auto; scrollbar-width: thin; }
+}
+
+/* Janela larga mas baixa (zoom alto): o player rola junto com a página */
+@media (min-width: 1001px) and (max-height: 640px) {
+  .now { position: static; max-height: none; overflow: visible; }
 }
 
 
